@@ -1,66 +1,94 @@
-"""Timing profiles and helpers."""
+"""Timing helpers mirroring the original Solvuria script."""
 
 from __future__ import annotations
 
 import random
-import time
 from dataclasses import dataclass
-from typing import Iterable, Tuple
 
 
-@dataclass(frozen=True)
-class TimingProfile:
-    name: str
-    between_questions: Tuple[float, float]
-    between_quizzes: Tuple[float, float]
-    mistake_chance: float
+@dataclass
+class TimingSettings:
+    min_step: float
+    max_step: float
+    min_cycle: float
+    max_cycle: float
+    percent_correct: int
+    stop_after_seconds: int
 
-    def sleep_between_questions(self) -> None:
-        time.sleep(random.uniform(*self.between_questions))
+    @property
+    def question_delay(self) -> tuple[float, float]:
+        return (self.min_step, self.max_step)
 
-    def sleep_between_quizzes(self) -> None:
-        time.sleep(random.uniform(*self.between_quizzes))
+    @property
+    def quiz_delay(self) -> tuple[float, float]:
+        return (self.min_cycle / 3.0, self.max_cycle / 3.0)
 
-    def should_make_mistake(self) -> bool:
-        return random.random() < self.mistake_chance
+    def next_question_delay(self) -> float:
+        return random.uniform(*self.question_delay)
+
+    def next_quiz_delay(self) -> float:
+        return random.uniform(*self.quiz_delay)
 
 
-NORMAL_PROFILE = TimingProfile(
-    name="Normal",
-    between_questions=(4.0, 8.0),
-    between_quizzes=(15.0, 25.0),
-    mistake_chance=0.05,
+NORMAL_SETTINGS = TimingSettings(
+    min_step=0.5,
+    max_step=1.0,
+    min_cycle=1.5,
+    max_cycle=3.0,
+    percent_correct=80,
+    stop_after_seconds=0,
 )
 
-FAST_PROFILE = TimingProfile(
-    name="Fast",
-    between_questions=(1.5, 3.0),
-    between_quizzes=(5.0, 10.0),
-    mistake_chance=0.02,
-)
-
-STEALTH_PROFILE = TimingProfile(
-    name="Stealth",
-    between_questions=(7.0, 14.0),
-    between_quizzes=(20.0, 45.0),
-    mistake_chance=0.08,
+FAST_SETTINGS = TimingSettings(
+    min_step=0.1,
+    max_step=0.2,
+    min_cycle=0.5,
+    max_cycle=1.0,
+    percent_correct=100,
+    stop_after_seconds=0,
 )
 
 
-def iter_profiles() -> Iterable[TimingProfile]:
-    yield NORMAL_PROFILE
-    yield FAST_PROFILE
-    yield STEALTH_PROFILE
+def choose_timing_settings() -> TimingSettings:
+    print("\n[>] Choose timing profile:")
+    print("[1] Normal     - Balanced delays, more human-like")
+    print("[2] Fast       - Minimal delays")
+    print("[3] Custom     - Enter your own timings")
+
+    choice = input("[>] Enter 1, 2, or 3: ").strip()
+    if choice:
+        choice = choice[0]
+
+    if choice == "1":
+        print("[+] Selected profile: Normal")
+        return NORMAL_SETTINGS
+
+    if choice == "2":
+        print("[+] Selected profile: Fast")
+        return FAST_SETTINGS
+
+    if choice == "3":
+        min_step = float(input("\n[>] Min delay between steps (sec): "))
+        max_step = float(input("[>] Max delay between steps (sec): "))
+        min_cycle = float(input("[>] Min delay between cycles (sec): "))
+        max_cycle = float(input("[>] Max delay between cycles (sec): "))
+        percent_correct = int(input("[>] Percent 'correct-like' (0–100): "))
+        stop_after_minutes = int(input("[>] Stop after N minutes (0 = infinite): "))
+        if min_step > max_step:
+            min_step, max_step = max_step, min_step
+        if min_cycle > max_cycle:
+            min_cycle, max_cycle = max_cycle, min_cycle
+        print("[+] Selected profile: Custom")
+        return TimingSettings(
+            min_step=min_step,
+            max_step=max_step,
+            min_cycle=min_cycle,
+            max_cycle=max_cycle,
+            percent_correct=percent_correct,
+            stop_after_seconds=stop_after_minutes * 60,
+        )
+
+    print("[-] Invalid choice. Defaulting to Normal.")
+    return NORMAL_SETTINGS
 
 
-def build_custom_profile(
-    between_questions: Tuple[float, float],
-    between_quizzes: Tuple[float, float],
-    mistake_chance: float,
-) -> TimingProfile:
-    return TimingProfile(
-        name="Custom",
-        between_questions=between_questions,
-        between_quizzes=between_quizzes,
-        mistake_chance=mistake_chance,
-    )

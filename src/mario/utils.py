@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import json
+import random
 import secrets
-from dataclasses import dataclass
 from hashlib import sha256
-from typing import Any, Iterable, Mapping, MutableMapping, Sequence
+from typing import Any, MutableMapping, Sequence
 
 
 class MarioError(RuntimeError):
@@ -21,34 +21,6 @@ class ApiResponseError(MarioError):
     """Raised when the API returns an unexpected response."""
 
 
-@dataclass
-class Subject:
-    id: str
-    name: str
-
-
-@dataclass
-class QuizChoice:
-    id: str
-    text: str
-    is_correct: bool
-
-
-@dataclass
-class QuizQuestion:
-    id: str
-    prompt: str
-    choices: Sequence[QuizChoice]
-
-
-@dataclass
-class Quiz:
-    id: str
-    course_id: str
-    playlist_id: str
-    questions: Sequence[QuizQuestion]
-
-
 def masked_input(prompt: str) -> str:
     try:
         from getpass import getpass
@@ -58,8 +30,15 @@ def masked_input(prompt: str) -> str:
 
 
 def random_user_agent() -> str:
-    token = secrets.token_hex(8)
-    return f"Mario/{token}"
+    return secrets.choice(
+        [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; rv:132.0) Gecko/20100101 Firefox/132.0",
+        ]
+    )
 
 
 def json_preview(data: bytes, limit: int = 200) -> str:
@@ -76,51 +55,40 @@ def safe_json_loads(data: bytes) -> MutableMapping[str, Any]:
         raise ApiResponseError(f"Unable to parse JSON: {exc}") from exc
 
 
-def flatten_questions(payload: Mapping[str, Any]) -> Iterable[Mapping[str, Any]]:
-    questions = payload.get("questions")
-    if not isinstance(questions, Sequence):
-        return []
-    for question in questions:
-        if not isinstance(question, Mapping):
-            continue
-        yield question
-
-
-def generate_content_identifier(user_identifier: str, answer_id: str, question_id: str) -> str:
-    material = f"{user_identifier}:{answer_id}:{question_id}".encode("utf8")
+def generate_content_identifier(user_identifier: str, answer_id: str, asking_id: str) -> str:
+    material = f"{asking_id}{answer_id}{user_identifier}".encode("utf8")
     return sha256(material).hexdigest()
 
 
-def extract_choices(question: Mapping[str, Any]) -> Sequence[QuizChoice]:
-    answers = question.get("answers") or []
-    result = []
-    for answer in answers:
-        if not isinstance(answer, Mapping):
-            continue
-        result.append(
-            QuizChoice(
-                id=str(answer.get("id")),
-                text=str(answer.get("text", "")),
-                is_correct=bool(answer.get("isCorrect")),
-            )
-        )
-    return result
+def determine_answer(answer_ids: Sequence[str], percent_correct: int) -> tuple[str, bool]:
+    """Select an answer, emulating Solvuria's behaviour."""
+
+    answers = list(answer_ids)
+
+    def is_correct(answer: str) -> bool:
+        try:
+            computed = int(answer, 16) * 8779302863457884 % 9007199254740991
+            return not int(str(int(computed))[-1])
+        except (ValueError, OverflowError):
+            return False
+
+    percent_correct = max(0, min(100, int(percent_correct)))
+    roll = secrets.randbelow(100)
+
+    if roll >= percent_correct:
+        wrong_candidates = [candidate for candidate in answers if not is_correct(candidate)]
+        if wrong_candidates:
+            return secrets.choice(wrong_candidates), False
+
+    for candidate in answers:
+        if is_correct(candidate):
+            return candidate, True
+
+    return secrets.choice(answers), False
 
 
-def build_question(question: Mapping[str, Any]) -> QuizQuestion:
-    choices = extract_choices(question)
-    return QuizQuestion(
-        id=str(question.get("id")),
-        prompt=str(question.get("prompt", "")),
-        choices=choices,
-    )
-
-
-def build_quiz(payload: Mapping[str, Any]) -> Quiz:
-    meta = payload.get("meta", {})
-    return Quiz(
-        id=str(payload.get("id")),
-        course_id=str(meta.get("courseId", "")),
-        playlist_id=str(meta.get("playlistId", "")),
-        questions=[build_question(q) for q in flatten_questions(payload)],
-    )
+def jitter(value_range: tuple[float, float]) -> float:
+    lower, upper = value_range
+    if lower > upper:
+        lower, upper = upper, lower
+    return random.uniform(lower, upper)

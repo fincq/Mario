@@ -6,66 +6,36 @@ import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, MutableMapping
+from typing import Dict
 
 DEFAULT_CONFIG_PATH = Path.home() / ".mario" / "config.json"
-
-
-@dataclass
-class EndpointConfig:
-    """Configuration container for Tassomai endpoints."""
-
-    base_url: str = "https://app.tassomai.com/api/v2"
-    login: str = "/auth/login/"
-    refresh: str = "/auth/token/refresh/"
-    last_login: str = "/user/last-login/"
-    subjects: str = "/user/subjects/"
-    next_quiz: str = "/quiz/next/"
-    fetch_quiz: str = "/quiz/fetch/"
-    answer: str = "/quiz/answer/"
-
-    def full_url(self, endpoint: str) -> str:
-        endpoint = getattr(self, endpoint)
-        return f"{self.base_url}{endpoint}" if endpoint.startswith("/") else endpoint
 
 
 @dataclass
 class MarioConfig:
     """High level configuration for the Mario client."""
 
-    endpoints: EndpointConfig = field(default_factory=EndpointConfig)
+    base_url: str = "https://kolin.tassomai.com/api"
     default_headers: Dict[str, str] = field(
         default_factory=lambda: {
             "Accept": "application/json",
+            "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
             "Content-Type": "application/json",
-            "User-Agent": "Mario/0.1 (https://github.com/)",
+            "Origin": "https://app.tassomai.com",
+            "Referer": "https://app.tassomai.com/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
         }
     )
-    turnstile_mode: bool = False
-    captcha_bypass: bool = True
+    turnstile_mode: bool = True
 
-    @classmethod
-    def load(cls, path: Path | None = None) -> "MarioConfig":
-        """Load configuration from *path* if it exists."""
-
-        path = path or DEFAULT_CONFIG_PATH
-        if not path.exists():
-            return cls()
-
-        with path.open("r", encoding="utf8") as handle:
-            data: MutableMapping[str, Any] = json.load(handle)
-
-        endpoints = EndpointConfig(**data.get("endpoints", {}))
-        headers = data.get("default_headers") or {}
-        turnstile_mode = bool(data.get("turnstile_mode", False))
-        captcha_bypass = bool(data.get("captcha_bypass", True))
-
-        return cls(
-            endpoints=endpoints,
-            default_headers={**cls().default_headers, **headers},
-            turnstile_mode=turnstile_mode,
-            captcha_bypass=captcha_bypass,
-        )
+    def url(self, path: str) -> str:
+        if path.startswith("http"):
+            return path
+        if not path.startswith("/"):
+            path = "/" + path
+        return f"{self.base_url}{path}"
 
     def save(self, path: Path | None = None) -> None:
         path = path or DEFAULT_CONFIG_PATH
@@ -73,18 +43,27 @@ class MarioConfig:
         with path.open("w", encoding="utf8") as handle:
             json.dump(
                 {
-                    "endpoints": self.endpoints.__dict__,
+                    "base_url": self.base_url,
                     "default_headers": self.default_headers,
                     "turnstile_mode": self.turnstile_mode,
-                    "captcha_bypass": self.captcha_bypass,
                 },
                 handle,
                 indent=2,
             )
 
+    @classmethod
+    def load(cls, path: Path | None = None) -> "MarioConfig":
+        path = path or DEFAULT_CONFIG_PATH
+        if not path or not path.exists():
+            return cls()
+        with path.open("r", encoding="utf8") as handle:
+            data = json.load(handle)
+        base_url = data.get("base_url", cls().base_url)
+        headers = {**cls().default_headers, **data.get("default_headers", {})}
+        turnstile_mode = bool(data.get("turnstile_mode", True))
+        return cls(base_url=base_url, default_headers=headers, turnstile_mode=turnstile_mode)
+
 
 def resolve_config(path: str | os.PathLike[str] | None = None) -> MarioConfig:
-    """Return the active configuration, optionally loaded from *path*."""
-
     config_path = Path(path) if path else None
     return MarioConfig.load(config_path)
