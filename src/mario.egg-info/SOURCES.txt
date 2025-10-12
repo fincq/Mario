@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+src/mario/__init__.py
+src/mario/__main__.py
+src/mario/api.py
+src/mario/cli.py
+src/mario/config.py
+src/mario/session.py
+src/mario/spinner.py
+src/mario/timing.py
+src/mario/utils.py
+src/mario.egg-info/PKG-INFO
+src/mario.egg-info/SOURCES.txt
+src/mario.egg-info/dependency_links.txt
+src/mario.egg-info/entry_points.txt
+src/mario.egg-info/top_level.txt
