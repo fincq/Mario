@@ -87,23 +87,16 @@ disable the captcha fetch helper.
 ### v1.0.0 - Stable Release
 
 **New Features:**
-- Complete rebranding from Solvuria to Mario
-- Modern ASCII art interface with clean, minimal design  
 - Updated for Tassomai API v1.23 compatibility
 - Added graceful shutdown handling (Ctrl+C support)
-- Implemented spinning loading indicators
-- Removed dependency on external notification systems
 
 **Technical Improvements:**
 - Fixed JSON serialization bug in session handling
 - Updated API headers for modern Tassomai authentication
-- Simplified codebase by removing complex weekly tracking
 - Enhanced error handling and user feedback
 - Improved timing profiles for realistic behavior
 
 **Breaking Changes:**
-- Removed weekly goal tracking and desktop notifications
-- Simplified command line interface
 - Updated configuration format
 
-This release focuses on reliability and simplicity, providing a stable automation tool without unnecessary complexity.
+This release focuses on the new Tassomai API.
