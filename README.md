@@ -1,7 +1,5 @@
 # Mario
 
-Credits to Solvuria for
-
 Mario is a modern automation client for the Tassomai educational platform.
 It provides intelligent quiz completion with realistic human-like timing and
 behavior patterns while working with the latest Tassomai API endpoints (v1.23).
