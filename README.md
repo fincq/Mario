@@ -102,3 +102,4 @@ disable the captcha fetch helper.
 - Updated configuration format
 
 This release focuses on reliability and simplicity, providing a stable automation tool without unnecessary complexity.
+# Anonymized version
