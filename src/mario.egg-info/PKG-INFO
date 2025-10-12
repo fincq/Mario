@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: mario
+Version: 0.1.0
+Summary: Automation client for the modern Tassomai API
+Author: Mario
+Requires-Python: >=3.9
