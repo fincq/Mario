@@ -44,9 +44,7 @@ class TassomaiClient:
         self.user_identifier: Optional[str] = None
         self.access_token: Optional[str] = None
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
+
     def _url(self, path: str) -> str:
         return self.config.url(path)
 
@@ -85,7 +83,7 @@ class TassomaiClient:
         user_message = payload.get("user_message") if isinstance(payload, Mapping) else None
         if user_message:
             LOGGER.info("Server message: %s", user_message)
-        return payload  # type: ignore[return-value]
+        return payload
 
     def _auth_headers(self, accept_version: bool = False, full_headers: bool = False) -> Mapping[str, str]:
         headers = {}
@@ -94,19 +92,15 @@ class TassomaiClient:
         if accept_version:
             headers["Accept"] = "application/json; version=1.23"
         if full_headers:
-            # Add extra headers only for specific endpoints (like token refresh)
             headers["app-build"] = "e9b415b69"
             from datetime import datetime
             headers["x-ts-client-iso-timestamp"] = datetime.utcnow().isoformat() + "Z"
-            # The x-ts-s header appears to be some kind of signature/hash - for now we'll try without it
         return headers
 
     def _now_millis(self) -> int:
         return int(time.time_ns() // 1_000_000)
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
+
     def authenticate(self, email: str, password: str) -> None:
         payload = {
             "capabilities": self.CAPABILITIES,

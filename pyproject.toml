@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mario"
-version = "1.0.0"
+version = "1.2.0"
 description = "Automation client for the modern Tassomai API"
-authors = [{name = "Afonso Correia", email = "afonso@example.com"}]
+authors = [{name = "Mario", email = "mario@example.com"}]
 dependencies = []
 requires-python = ">=3.9"
 

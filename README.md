@@ -6,19 +6,16 @@ behavior patterns while working with the latest Tassomai API endpoints (v1.23).
 
 ## Credits
 
-Mario is based on the Solvuria framework, with significant modernization and enhancements for the current Tassomai API (v1.23). 
-The core automation concepts and approach were derived from the original Solvuria project. (https://github.com/corey-truscott/Solvuria)
+Mario is based on the Solvuria framework, with enhancements for the current Tassomai API (v1.23). The core automation concepts and approach were derived from the original Solvuria project. (https://github.com/corey-truscott/Solvuria)
 
 ## Features
 
-- Clean ASCII art interface with minimal design
+- Clean interface
 - Modern Tassomai API v1.23 compatibility with updated headers
-- Configurable timing profiles (Normal, Fast, or custom)  
+- Configurable timing profiles (Human-like, Fast, or custom) with separate accuracy selection  
 - Automatic token refresh and authentication handling
 - Built-in captcha bypass for protected quizzes
-- Graceful shutdown handling (Ctrl+C support)
 - Spinning loading indicators for better UX
-- Continuous operation until manually stopped
 - Human-readable error messages and debugging
 
 ## Installation
@@ -53,9 +50,10 @@ python -m mario --log-level DEBUG
 
 1. **Authentication**: Enter your Tassomai email and password
 2. **Subject Selection**: Choose from available subjects (auto-detects if only one)
-3. **Timing Profile**: Select Normal, Fast, or Custom timing settings
-4. **Automated Quiz Completion**: Mario continuously fetches and completes quizzes
-5. **Graceful Shutdown**: Use Ctrl+C to stop after current operation
+3. **Timing Profile**: Select Human-like, Fast, or Custom timing settings
+4. **Accuracy Selection**: Choose your desired accuracy percentage (60-100%)
+5. **Automated Quiz Completion**: Mario continuously fetches and completes quizzes
+6. **Graceful Shutdown**: Use Ctrl+C to stop after current operation
 
 ### Command Line Options
 

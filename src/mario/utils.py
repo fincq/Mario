@@ -22,11 +22,36 @@ class ApiResponseError(MarioError):
 
 
 def masked_input(prompt: str) -> str:
+    import sys
+    
     try:
-        from getpass import getpass
-    except ImportError:  # pragma: no cover - Python always ships getpass
-        return input(prompt)
-    return getpass(prompt)
+        if sys.platform == "win32":
+            import msvcrt
+            password = ""
+            print(prompt, end="", flush=True)
+            
+            while True:
+                char = msvcrt.getch()
+                if char in [b'\r', b'\n']:
+                    print()
+                    break
+                elif char == b'\x08':
+                    if len(password) > 0:
+                        password = password[:-1]
+                        print('\b \b', end="", flush=True)
+                else:
+                    try:
+                        password += char.decode('utf-8')
+                        print('*', end="", flush=True)
+                    except:
+                        pass
+            
+            return password
+        else:
+            from getpass import getpass
+            return getpass(prompt)
+    except:
+        return input(prompt + " (visible): ")
 
 
 def random_user_agent() -> str:
@@ -51,7 +76,7 @@ def json_preview(data: bytes, limit: int = 200) -> str:
 def safe_json_loads(data: bytes) -> MutableMapping[str, Any]:
     try:
         return json.loads(data.decode("utf8"))
-    except json.JSONDecodeError as exc:  # pragma: no cover - defensive branch
+    except json.JSONDecodeError as exc:
         raise ApiResponseError(f"Unable to parse JSON: {exc}") from exc
 
 

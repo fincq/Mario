@@ -22,12 +22,11 @@ from .utils import ApiResponseError, AuthenticationError, determine_answer, mask
 
 VERSION = 200
 
-# Global flag for graceful shutdown
 _shutdown_requested = False
 
 
 def signal_handler(signum: int, frame) -> None:
-    """Handle interrupt signals gracefully."""
+    """Handle interrupt signals."""
     global _shutdown_requested
     signal_names = {signal.SIGINT: "SIGINT (Ctrl+C)", signal.SIGTERM: "SIGTERM"}
     signal_name = signal_names.get(signum, f"Signal {signum}")
@@ -103,8 +102,6 @@ def present_intro() -> None:
 ║                                                                              ║
 ║                               Tassomai Automation                            ║
 ║                                                                              ║
-║                                 Created by Afonso                            ║
-║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """)
     
@@ -120,6 +117,15 @@ def present_intro() -> None:
     print("""
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ GitHub: https://github.com/afonch/Mario                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ FIRST TIME SETUP TIPS                                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ • Use your normal Tassomai login credentials                                │
+│ • Choose HUMAN-LIKE timing for realistic behavior (recommended)             │
+│ • Mario runs continuously - use Ctrl+C to stop                              │
+│ • Check your progress on the Tassomai website                               │
 └─────────────────────────────────────────────────────────────────────────────┘
 """)
 
@@ -235,7 +241,6 @@ def run_quiz(client: TassomaiClient, quiz: Mapping[str, object], settings: Timin
 
 
 def run(argv: Optional[Iterable[str]] = None) -> int:
-    # Setup signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
@@ -260,11 +265,34 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         with spinner("[~] Refreshing token…"):
             client.refresh_token()
     except AuthenticationError as exc:
-        print(f"[-] Authentication failed: {exc}")
+        print(f"""
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ AUTHENTICATION FAILED                                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+Error: {exc}
+
+Common solutions:
+• Check your email and password are correct
+• Make sure you can log in to Tassomai normally in a web browser
+• Check your internet connection
+• Wait a few minutes and try again (rate limiting)
+""")
         time.sleep(5)
         return 1
     except ApiResponseError as exc:
-        print(f"[-] API error during sign-in: {exc}")
+        print(f"""
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CONNECTION ERROR                                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+Error: {exc}
+
+This usually means:
+• Internet connection issues
+• Tassomai servers are temporarily unavailable
+• Firewall/proxy blocking the connection
+
+Try again in a few minutes.
+""")
         time.sleep(5)
         return 1
 
@@ -281,12 +309,23 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
 
     settings = choose_timing_settings()
     settings.percent_correct = ensure_percentage(settings.percent_correct)
-    # Remove automatic time-based stopping - Mario runs until manually stopped
+    
+    print(f"""
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ MARIO IS NOW RUNNING                                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Subject: {str(subject.get('name', 'Unknown')):<63} │
+│ Timing: {settings.min_step:.1f}-{settings.max_step:.1f}s delays{'':<48} │
+│ Accuracy: {settings.percent_correct}%{'':<65} │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Press Ctrl+C to stop Mario                                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+""")
 
+    quiz_count = 0
     while True:
-        # Check if shutdown was requested
         if _shutdown_requested:
-            print("[!] Shutdown requested - stopping Mario gracefully...")
+            print("[!] Shutdown requested - stopping Mario...")
             break
             
         quizzes = client.get_quizzes(str(subject.get("id")))
@@ -309,9 +348,10 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
             time.sleep(60)
             continue
 
+        quiz_count += 1
         print(f"""
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ QUIZ INITIATED                                                              │
+│ QUIZ #{quiz_count:<3} STARTING                                                   │
 │ Topic: {quiz_to_run.get('playlistName', 'unknown'):<67} │
 │ ID: {quiz_to_run.get('courseId')}-{quiz_to_run.get('playlistId'):<70} │
 └─────────────────────────────────────────────────────────────────────────────┘""")
@@ -335,7 +375,7 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ MARIO COMPLETED                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘""")
-    time.sleep(2)  # Shorter sleep since user might want to stop
+    time.sleep(2)
     return 0
 
 
@@ -343,5 +383,5 @@ def main() -> None:
     sys.exit(run())
 
 
-if __name__ == "__main__":  # pragma: no cover - CLI entry point
+if __name__ == "__main__":
     main()
