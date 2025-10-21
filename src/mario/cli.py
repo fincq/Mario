@@ -8,13 +8,14 @@ import logging
 import random
 import signal
 import sys
+import textwrap
 import time
 import urllib.error
 import urllib.request
 from typing import Iterable, Mapping, Optional
 
+from .alerts import fetch_global_warning
 from .api import TassomaiClient
-from .spinner import spinner
 from .config import resolve_config
 from .spinner import spinner
 from .timing import TimingSettings, choose_timing_settings
@@ -23,6 +24,33 @@ from .utils import ApiResponseError, AuthenticationError, determine_answer, mask
 VERSION = 200
 
 _shutdown_requested = False
+
+BOX_WIDTH = 79
+BOX_INNER_WIDTH = BOX_WIDTH - 2
+BOX_MARGIN = 1
+
+
+def _box_border(left: str, right: str) -> str:
+    return f"{left}{'─' * BOX_INNER_WIDTH}{right}"
+
+
+BOX_TOP = _box_border("┌", "┐")
+BOX_BOTTOM = _box_border("└", "┘")
+BOX_DIVIDER = _box_border("├", "┤")
+
+
+def box_line(text: str = "", align: str = "left") -> str:
+    content_width = BOX_INNER_WIDTH - (BOX_MARGIN * 2)
+    trimmed = (text or "").strip()
+    truncated = trimmed[:content_width]
+    if align == "center":
+        body = truncated.center(content_width)
+    elif align == "right":
+        body = truncated.rjust(content_width)
+    else:
+        body = truncated.ljust(content_width)
+    margin = " " * BOX_MARGIN
+    return f"│{margin}{body}{margin}│"
 
 
 def signal_handler(signum: int, frame) -> None:
@@ -113,6 +141,27 @@ def present_intro() -> None:
 │ Newer version: v{'.'.join(list(str(latest)))} > v{'.'.join(list(str(VERSION)))}                                     │
 └─────────────────────────────────────────────────────────────────────────────┘
 """)
+
+
+def display_global_warning() -> None:
+    warning = fetch_global_warning()
+    if not warning:
+        return
+    content_width = BOX_INNER_WIDTH - BOX_MARGIN * 2
+    border = "!" * content_width
+    wrapped = textwrap.wrap(warning.upper(), width=content_width) or [warning.upper()]
+    lines = [
+        BOX_TOP,
+        box_line(border),
+        box_line("!!! DETECTION WARNING !!!", align="center"),
+        box_line(border),
+        BOX_DIVIDER,
+    ]
+    lines.extend(box_line(line) for line in wrapped)
+    lines.append(BOX_DIVIDER)
+    lines.append(box_line(border))
+    lines.append(BOX_BOTTOM)
+    print(f"\n{'\n'.join(lines)}\n")
     
     print("""
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -250,6 +299,7 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
 
     
     present_intro()
+    display_global_warning()
 
     config = resolve_config(args.config)
     client = TassomaiClient(config, user_agent=random_user_agent())
